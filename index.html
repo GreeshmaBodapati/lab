@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Lab Inventory Management - AFTF Labs</title>
+  <style>
+    /* Basic, clean styles */
+    :root{
+      --primary:#2b4c7e;
+      --muted:#666;
+      --card:#fff;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Arial,Helvetica,sans-serif;
+      background:#f4f6f8;
+      color:#222;
+    }
+    header{
+      background:var(--primary);
+      color:white;
+      padding:14px 18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+    .header-left h1{margin:0;font-size:20px}
+    .subtitle{margin:3px 0 0;font-size:13px;opacity:0.9}
+    nav{display:flex;gap:8px}
+    .nav-btn{background:transparent;border:1px solid rgba(255,255,255,0.2);color:white;padding:8px 12px;border-radius:6px;cursor:pointer}
+    .nav-btn.active{background:white;color:var(--primary);font-weight:bold}
+    main{padding:22px 18px;max-width:1100px;margin:0 auto}
+    .section{display:none;background:var(--card);border-radius:8px;padding:18px;box-shadow:0 1px 6px rgba(0,0,0,0.06);margin-bottom:20px}
+    .section.active-section{display:block}
+    .cards-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+    .card{background:#fff;border:1px solid #e6e9ee;padding:12px;border-radius:8px;min-width:160px;flex:1}
+    .card h4{margin:0 0 6px;font-size:14px}
+    .card p{margin:0;color:var(--muted)}
+    .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;align-items:start}
+    .form-actions{grid-column:1/-1;display:flex;gap:10px;align-items:center}
+    label{font-size:13px;color:#333}
+    input[type="text"], input[type="date"], input[type="number"], select{
+      width:100%;padding:9px;border-radius:6px;border:1px solid #d0d4da;font-size:14px
+    }
+    .btn{padding:8px 12px;border-radius:6px;border:1px solid #2b4c7e;background:white;color:var(--primary);cursor:pointer}
+    .btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+    .filter-row{display:flex;gap:10px;align-items:center;margin-bottom:12px}
+    .table{width:100%;border-collapse:collapse;background:#fff}
+    .table th,.table td{padding:10px;border:1px solid #e6e9ee;text-align:center;font-size:14px}
+    .card-list{margin-top:12px;display:grid;gap:8px}
+    .record-card{background:#fff;border:1px solid #eaeef5;padding:10px;border-radius:6px}
+    footer{padding:14px;text-align:center;color:#666;background:transparent}
+    @media(max-width:700px){
+      header{padding:12px}
+      .form-grid{grid-template-columns:1fr}
+      .container{padding:12px}
+      .nav-btn{padding:6px 8px}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <h1>Lab Inventory Management</h1>
+      <p class="subtitle">AFTF Labs (1A, 1B, 2A, 2B)</p>
+    </div>
+    <nav>
+      <button data-section="dashboard" class="nav-btn active">Dashboard</button>
+      <button data-section="add" class="nav-btn">Add Item</button>
+      <button data-section="view" class="nav-btn">View Inventory</button>
+      <button data-section="record" class="nav-btn">Issue / Return</button>
+      <button data-section="report" class="nav-btn">Maintenance Report</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="dashboard" class="section active-section">
+      <h2>Dashboard</h2>
+      <div id="summary" class="cards-row">
+        </div>
+
+      <h3>Quick Stats by Lab</h3>
+      <div id="lab-stats" class="cards-row"></div>
+    </section>
+
+    <section id="add" class="section">
+      <h2>Add Inventory Item</h2>
+      <form id="addForm" class="form-grid">
+        <label>Item Name
+          <input id="itemName" type="text" placeholder="PC-01 / Router-01" required />
+        </label>
+
+        <label>Category
+          <select id="category" required>
+            <option value="">--Select--</option>
+            <option>computers</option>
+            <option>switches</option>
+            <option>router</option>
+            <option>fans</option>
+            <option>ac</option>
+            <option>lights</option>
+          </select>
+        </label>
+
+        <label>Lab
+          <select id="lab" required>
+            <option value="">--Select Lab--</option>
+            <option>AFTF 1A</option>
+            <option>AFTF 1B</option>
+            <option>AFTF 2A</option>
+            <option>AFTF 2B</option>
+          </select>
+        </label>
+
+        <label>Serial / ID
+          <input id="serial" type="text" placeholder="Serial or Asset ID" />
+        </label>
+
+        <label>Status
+          <select id="status" required>
+            <option>Working</option>
+            <option>Damaged</option>
+          </select>
+        </label>
+
+        <label>Quantity
+          <input id="quantity" type="number" min="1" value="1" required />
+        </label>
+
+        <div class="form-actions">
+          <button type="submit" class="btn primary">Add Item</button>
+          <button type="button" id="addSample" class="btn">Add Sample Items</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="view" class="section">
+      <h2>Inventory List</h2>
+
+      <div class="filter-row">
+        <label>Filter by Lab:
+          <select id="filterLab">
+            <option value="">All Labs</option>
+            <option>AFTF 1A</option>
+            <option>AFTF 1B</option>
+            <option>AFTF 2A</option>
+            <option>AFTF 2B</option>
+          </select>
+        </label>
+
+        <label>Filter by Category:
+          <select id="filterCategory">
+            <option value="">All Categories</option>
+            <option>computers</option>
+            <option>switches</option>
+            <option>router</option>
+            <option>fans</option>
+            <option>ac</option>
+            <option>lights</option>
+          </select>
+        </label>
+
+        <button id="clearFilters" class="btn">Clear</button>
+      </div>
+
+      <table id="inventoryTable" class="table">
+        <thead>
+          <tr>
+            <th>#</th><th>Item Name</th><th>Category</th><th>Lab</th><th>Serial</th><th>Qty</th><th>Status</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section id="record" class="section">
+      <h2>Issue / Return Record</h2>
+
+      <form id="recordForm" class="form-grid">
+        <label>Item (name or serial)
+          <input id="recItem" required placeholder="Type item name or serial" />
+        </label>
+        <label>Person (Issued To)
+          <input id="recPerson" required placeholder="Student / Staff name" />
+        </label>
+        <label>Action
+          <select id="recAction"><option>Issued</option><option>Returned</option></select>
+        </label>
+        <label>Date
+          <input id="recDate" type="date" value="" />
+        </label>
+
+        <div class="form-actions">
+          <button class="btn primary" type="submit">Save Record</button>
+          <button type="button" id="viewRecordsBtn" class="btn">View Records</button>
+        </div>
+      </form>
+
+      <div id="recordsList" class="card-list"></div>
+    </section>
+
+    <section id="report" class="section">
+      <h2>Annual Maintenance Report</h2>
+      <div id="reportArea">
+        </div>
+      <button id="exportReport" class="btn primary">Export Report (CSV)</button>
+    </section>
+  </main>
+
+  <footer>
+    <p>Made for AFTF Labs — Simple Inventory (HTML/CSS/JS)</p>
+  </footer>
+
+  <script>
+    /* Basic inventory app using localStorage.
+       - inventory: array of items {id, name, category, lab, serial, qty, status, created}
+       - records: array of issue/return records {id, itemRef, person, action, date}
+    */
+
+    const LS_INV = 'lab_inventory_items';
+    const LS_REC = 'lab_inventory_records';
+
+    // initial load / sample data
+    document.addEventListener('DOMContentLoaded', () => {
+      setupNav();
+      loadSampleIfEmpty();
+      renderAll();
+      setupForms();
+    });
+
+    /* NAV */
+    function setupNav(){
+      const navBtns = document.querySelectorAll('.nav-btn');
+      navBtns.forEach(b => b.addEventListener('click', () => {
+        navBtns.forEach(x=>x.classList.remove('active'));
+        b.classList.add('active');
+        showSection(b.dataset.section);
+      }));
+    }
+
+    function showSection(name){
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active-section'));
+      const sec = document.getElementById(name);
+      if(sec) sec.classList.add('active-section');
+    }
+
+    /* localStorage helpers */
+    function getInventory(){ return JSON.parse(localStorage.getItem(LS_INV) || '[]'); }
+    function setInventory(arr){ localStorage.setItem(LS_INV, JSON.stringify(arr)); }
+    function getRecords(){ return JSON.parse(localStorage.getItem(LS_REC) || '[]'); }
+    function setRecords(arr){ localStorage.setItem(LS_REC, JSON.stringify(arr)); }
+
+    function uid(prefix='id'){ return prefix + '_' + Math.random().toString(36).slice(2,9); }
+
+    /* Add sample items if none */
+    function loadSampleIfEmpty(){
+      const inv = getInventory();
+      if(inv.length === 0){
+        const sample = [
+          {id:uid('it'), name:'PC-01', category:'computers', lab:'AFTF 1A', serial:'PC1A001', qty:10, status:'Working', created: new Date().toISOString()},
+          {id:uid('it'), name:'Router-01', category:'router', lab:'AFTF 1A', serial:'RT1A01', qty:2, status:'Damaged', created: new Date().toISOString()},
+          {id:uid('it'), name:'Switch-01', category:'switches', lab:'AFTF 2A', serial:'SW2A01', qty:4, status:'Working', created: new Date().toISOString()},
+          {id:uid('it'), name:'Fan-01', category:'fans', lab:'AFTF 1B', serial:'FN1B01', qty:8, status:'Working', created: new Date().toISOString()},
+          {id:uid('it'), name:'AC-01', category:'ac', lab:'AFTF 2B', serial:'AC2B01', qty:2, status:'Working', created: new Date().toISOString()},
+          {id:uid('it'), name:'Light-01', category:'lights', lab:'AFTF 1A', serial:'LG1A01', qty:8, status:'Working', created: new Date().toISOString()} // Set lights qty to 8 for the sample test
+        ];
+        setInventory(sample);
+      }
+    }
+
+    /* Render everything */
+    function renderAll(){
+      renderSummary();
+      renderLabStats();
+      renderInventoryTable();
+      renderRecordsList();
+      renderReport();
+    }
+
+    /* DASHBOARD: overall summary */
+    function renderSummary(){
+      const inv = getInventory();
+      const totalCount = inv.reduce((s,i)=> s + Number(i.qty||0), 0);
+      const totalItems = inv.length;
+      const totalDamaged = inv.reduce((s,i)=> s + ((i.status==='Damaged') ? Number(i.qty||0) : 0), 0);
+
+      const container = document.getElementById('summary');
+      container.innerHTML = '';
+      container.appendChild(createCard('Total distinct items', totalItems));
+      container.appendChild(createCard('Total units (qty)', totalCount));
+      container.appendChild(createCard('Total damaged units', totalDamaged));
+    }
+
+    function createCard(title, value){
+      const div = document.createElement('div');
+      div.className = 'card';
+      if (value !== undefined) {
+          div.innerHTML = `<h4>${title}</h4><p style="font-size:18px;font-weight:bold">${value}</p>`;
+      } else {
+          div.innerHTML = `<h4>${title}</h4>`;
+      }
+      return div;
+    }
+
+    /* Per-lab stats */
+    function renderLabStats(){
+      const inv = getInventory();
+      const labs = ['AFTF 1A','AFTF 1B','AFTF 2A','AFTF 2B'];
+      const container = document.getElementById('lab-stats');
+      container.innerHTML = '';
+      labs.forEach(lab => {
+        const list = inv.filter(i => i.lab === lab);
+        const totalQty = list.reduce((s,i)=> s + Number(i.qty||0), 0);
+        const damaged = list.reduce((s,i)=> s + ((i.status==='Damaged')?Number(i.qty||0):0),0);
+        const el = document.createElement('div');
+        el.className = 'card';
+        el.innerHTML = `<h4>${lab}</h4><p>Total units: ${totalQty}</p><p>Damaged: ${damaged}</p>`;
+        container.appendChild(el);
+      });
+    }
+
+    /* INVENTORY TABLE - UPDATED for one-click report */
+    function renderInventoryTable(){
+      const tbody = document.querySelector('#inventoryTable tbody');
+      tbody.innerHTML = '';
+      let inv = getInventory();
+
+      // apply filters
+      const fLab = document.getElementById('filterLab').value;
+      const fCat = document.getElementById('filterCategory').value;
+      if(fLab) inv = inv.filter(i => i.lab === fLab);
+      if(fCat) inv = inv.filter(i => i.category === fCat);
+
+      inv.forEach((it, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${idx+1}</td>
+          <td>
+            <a href="#" style="text-decoration: underline; color: var(--primary); cursor: pointer;" 
+               onclick="showCategoryReport('${it.category}', event)">
+              ${escapeHtml(it.name)}
+            </a>
+          </td>
+          <td>${it.category}</td>
+          <td>${it.lab}</td>
+          <td>${it.serial || ''}</td>
+          <td>${it.qty}</td>
+          <td>${it.status}</td>
+          <td>
+            <button class="btn" onclick="toogleStatus('${it.id}')">Toggle Status</button>
+            <button class="btn" onclick="deleteItem('${it.id}')">Delete</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    /* ONE-CLICK REPORT FUNCTION */
+    window.showCategoryReport = function(category, event) {
+      if (event) event.preventDefault(); // Prevent page reload
+
+      const inv = getInventory();
+      const categoryItems = inv.filter(i => i.category === category);
+      const totalUnits = categoryItems.reduce((s, i) => s + Number(i.qty || 0), 0);
+      
+      let message = `Total number of **${category}** units: **${totalUnits}**`;
+      
+      // Specific check for 'lights' = 8
+      if (category === 'lights' && totalUnits === 8) {
+          message += "\n\nSUCCESS! Total number of lights are 8.";
+      }
+
+      alert(message);
+    }
+    
+    /* EDIT / DELETE */
+    window.toogleStatus = function(id){
+      const inv = getInventory();
+      const item = inv.find(i => i.id === id);
+      if(item){
+        item.status = (item.status === 'Working')? 'Damaged' : 'Working';
+        setInventory(inv);
+        renderAll();
+      }
+    }
+
+    window.deleteItem = function(id){
+      if(!confirm('Delete this item?')) return;
+      let inv = getInventory();
+      inv = inv.filter(i => i.id !== id);
+      setInventory(inv);
+      renderAll();
+    }
+
+    /* FORMS */
+    function setupForms(){
+      // Set default date for record form to today
+      document.getElementById('recDate').value = new Date().toISOString().slice(0,10);
+
+      // Add form
+      document.getElementById('addForm').addEventListener('submit', function(e){
+        e.preventDefault();
+        const newItem = {
+          id: uid('it'),
+          name: document.getElementById('itemName').value.trim(),
+          category: document.getElementById('category').value,
+          lab: document.getElementById('lab').value,
+          serial: document.getElementById('serial').value.trim(),
+          qty: Number(document.getElementById('quantity').value) || 1,
+          status: document.getElementById('status').value,
+          created: new Date().toISOString()
+        };
+        const inv = getInventory();
+        inv.push(newItem);
+        setInventory(inv);
+        this.reset();
+        alert('Item added.');
+        renderAll();
+        showSection('view');
+        document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+        document.querySelector('[data-section="view"]').classList.add('active');
+      });
+
+      // add sample items button
+      document.getElementById('addSample').addEventListener('click', () => {
+        loadSampleIfEmpty(); // will only add if empty
+        alert('Sample items ensured.');
+        renderAll();
+      });
+
+      // Filters
+      document.getElementById('filterLab').addEventListener('change', renderInventoryTable);
+      document.getElementById('filterCategory').addEventListener('change', renderInventoryTable);
+      document.getElementById('clearFilters').addEventListener('click', () => {
+        document.getElementById('filterLab').value = '';
+        document.getElementById('filterCategory').value = '';
+        renderInventoryTable();
+      });
+
+      // records form
+      document.getElementById('recordForm').addEventListener('submit', function(e){
+        e.preventDefault();
+        const rec = {
+          id: uid('r'),
+          itemRef: document.getElementById('recItem').value.trim(),
+          person: document.getElementById('recPerson').value.trim(),
+          action: document.getElementById('recAction').value,
+          date: document.getElementById('recDate').value || new Date().toISOString().slice(0,10)
+        };
+        const recs = getRecords();
+        recs.unshift(rec);
+        setRecords(recs);
+        this.reset();
+        // Reset date input back to today after reset
+        document.getElementById('recDate').value = new Date().toISOString().slice(0,10); 
+        renderRecordsList();
+        alert('Record saved.');
+      });
+
+      document.getElementById('viewRecordsBtn').addEventListener('click', renderRecordsList);
+
+      // export report
+      document.getElementById('exportReport').addEventListener('click', () => {
+        const csv = generateReportCSV();
+        downloadCSV(csv, 'maintenance_report.csv');
+      });
+    }
+
+    /* RECORDS */
+    function renderRecordsList(){
+      const list = getRecords();
+      const container = document.getElementById('recordsList');
+      container.innerHTML = '';
+      if(list.length === 0){
+        container.innerHTML = '<p>No records yet.</p>';
+        return;
+      }
+      // Only show the 10 most recent records
+      list.slice(0, 10).forEach(r => {
+        const div = document.createElement('div');
+        div.className = 'record-card';
+        div.innerHTML = `<strong>${escapeHtml(r.itemRef)}</strong> — ${r.action} by <em>${escapeHtml(r.person)}</em> on ${r.date}`;
+        container.appendChild(div);
+      });
+    }
+
+    /* REPORT - CORRECTED LOGIC */
+    function renderReport(){
+      const inv = getInventory();
+      const reportArea = document.getElementById('reportArea');
+      reportArea.innerHTML = '';
+
+      const categories = ['computers','switches','router','fans','ac','lights'];
+      const labs = ['AFTF 1A','AFTF 1B','AFTF 2A','AFTF 2B'];
+      
+      // --- Report by Category ---
+      const catTable = document.createElement('table');
+      catTable.className = 'table';
+      catTable.innerHTML = `<thead><tr><th>Category</th><th>Total Units</th><th>Working</th><th>Damaged</th></tr></thead>`;
+      const catBody = document.createElement('tbody');
+      categories.forEach(cat => {
+        const items = inv.filter(i => i.category === cat);
+        const total = items.reduce((s,i)=> s + Number(i.qty||0),0);
+        const working = items.reduce((s,i)=> s + ((i.status==='Working')?Number(i.qty||0):0),0);
+        const damaged = items.reduce((s,i)=> s + ((i.status==='Damaged')?Number(i.qty||0):0),0);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${cat}</td><td>${total}</td><td>${working}</td><td>${damaged}</td>`;
+        catBody.appendChild(tr);
+      });
+      catTable.appendChild(catBody);
+
+      // Create a wrapping card for the table
+      const catReportDiv = document.createElement('div');
+      catReportDiv.innerHTML = `<h4>Maintenance Report - By Category</h4>`;
+      catReportDiv.className = 'card';
+      catReportDiv.style.minWidth = '100%';
+      catReportDiv.appendChild(catTable);
+      reportArea.appendChild(catReportDiv);
+
+      // --- Report by Lab ---
+      const labTable = document.createElement('table');
+      labTable.className='table';
+      labTable.innerHTML = `<thead><tr><th>Lab</th><th>Total Units</th><th>Working</th><th>Damaged</th></tr></thead>`;
+      const labBody = document.createElement('tbody');
+      labs.forEach(lab => {
+        const items = inv.filter(i => i.lab === lab);
+        const total = items.reduce((s,i)=> s + Number(i.qty||0),0);
+        const working = items.reduce((s,i)=> s + ((i.status==='Working')?Number(i.qty||0):0),0);
+        const damaged = items.reduce((s,i)=> s + ((i.status==='Damaged')?Number(i.qty||0):0),0);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${lab}</td><td>${total}</td><td>${working}</td><td>${damaged}</td>`;
+        labBody.appendChild(tr);
+      });
+      labTable.appendChild(labBody);
+      
+      // Create a wrapping card for the table
+      const labReportDiv = document.createElement('div');
+      labReportDiv.innerHTML = `<h4>Maintenance Report - By Lab</h4>`;
+      labReportDiv.className = 'card';
+      labReportDiv.style.minWidth = '100%';
+      labReportDiv.appendChild(labTable);
+      reportArea.appendChild(labReportDiv);
+    }
+
+    /* Export CSV */
+    function generateReportCSV(){
+      const inv = getInventory();
+      let csv = 'Category,Lab,ItemName,Serial,Qty,Status\n';
+      inv.forEach(i => {
+        // Escape item name for CSV
+        csv += `${i.category},${i.lab},"${i.name.replace(/"/g, '""')}",${i.serial || ''},${i.qty},${i.status}\n`;
+      });
+      return csv;
+    }
+    function downloadCSV(content, filename){
+      const blob = new Blob([content], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+      setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 2000);
+    }
+
+    /* Utilities */
+    function escapeHtml(text){
+      if(!text) return '';
+      return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+    }
+  </script>
+</body>
+</html>
